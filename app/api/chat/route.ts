@@ -33,6 +33,13 @@ SCRIPTURAL & CITATION INTEGRITY:
 
 export async function POST(req: Request) {
   try {
+<<<<<<< HEAD
+    if (!GEMINI_API_KEY || !QDRANT_URL || !QDRANT_API_KEY) {
+      throw new Error("Missing required API keys or environment variables.");
+    }
+
+    const { messages } = await req.json();
+=======
     if (!GEMINI_API_KEY || !QDRANT_API_KEY || !QDRANT_URL) {
       return NextResponse.json({ error: "Chat service is not configured." }, { status: 503 });
     }
@@ -46,6 +53,7 @@ export async function POST(req: Request) {
         messages[messages.length - 1].role !== "user" || messages[messages.length - 1].content.length > 600) {
       return NextResponse.json({ error: "Enter a question of up to 600 characters." }, { status: 400 });
     }
+>>>>>>> parent of 96032c6 (Update route.ts)
     const currentQuestion = messages[messages.length - 1].content;
 
     // 1. Generate query embedding
