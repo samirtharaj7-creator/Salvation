@@ -38,7 +38,7 @@ QUOTATION DISCIPLINE & CHUNK BOUNDARY INTEGRITY (ELLEN G. WHITE MANDATE):
 1. ONE OR TWO TARGETED QUOTES ONLY: Do not chain three or four quotes together in succession. Select only one or two primary, highly relevant statements from Ellen G. White that directly resolve the inquiry. Integrate them thoughtfully into your exposition.
 2. COMPLETE, UNABRIDGED QUOTES: Whenever you quote Ellen G. White, you MUST quote the full, complete sentence or passage as found in the excerpt. NEVER stitch isolated fragments together, never use ellipses (...) to compress thoughts, and never truncate her sentences mid-clause.
 3. CHUNK BOUNDARY INTEGRITY: If a retrieved excerpt cuts off mid-sentence at its boundary, NEVER quote that broken fragment. Only quote sentences that are completely intact within the excerpt.
-4. WORD LIMIT OVERRIDE: While standard answers target 350 to 500 words, you are EXPLICITLY AUTHORIZED TO EXCEED this length whenever necessary to preserve the full, unabridged quotation of Ellen G. White's statements.
+4. TARGET WORD COUNT (300 TO 380 WORDS): Keep the entire exposition tightly focused between 300 and 380 words so every sentence, citation, and concluding thought finishes completely without truncation.
 5. PROPER CLOSING RULE: NEVER end your treatise with a quotation or an unclosed quotation mark. The final paragraph must conclude with a substantive, original theological sentence that provides a finished, polished synthesis to the study.
 
 EXEGETICAL, TEXTUAL & ORIGINAL-LANGUAGE WORD STUDIES:
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           vector: queryVector,
-          limit: 10,
+          limit: 6,
           with_payload: true,
         }),
       }
@@ -137,9 +137,9 @@ ${context}
 
 Inquiry: ${currentQuestion}
 
-Compose an essayistic theological study answering directly in sentence one. Integrate 1 or 2 complete, unabridged quotations without quote-stacking, never quote broken fragments from chunk edges, and conclude with a finished synthesizing sentence:`;
+Compose an essayistic theological study (300 to 380 words) answering directly in sentence one. Integrate 1 or 2 complete, unabridged quotations without quote-stacking, never quote broken fragments from chunk edges, and conclude with a finished synthesizing sentence:`;
 
-    // 3. Generate response using gemini-3.6-flash
+    // 3. Generate response with safety blocks lifted to avoid false-positive halts
     const generateRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -147,9 +147,15 @@ Compose an essayistic theological study answering directly in sentence one. Inte
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+          ],
           generationConfig: {
             temperature: 0.15,
-            maxOutputTokens: 3500,
+            maxOutputTokens: 2500,
           },
         }),
       }
@@ -162,7 +168,7 @@ Compose an essayistic theological study answering directly in sentence one. Inte
 
     let answer = genData.candidates?.[0]?.content?.parts?.[0]?.text || "";
     
-    // Replace unintended em and en dashes
+    // Replace em and en dashes
     answer = answer.replace(/\s*—\s*/g, ", ").replace(/\s*–\s*/g, ", ");
 
     return NextResponse.json({ answer });
