@@ -139,7 +139,7 @@ Inquiry: ${currentQuestion}
 
 Compose an essayistic theological study (300 to 380 words) answering directly in sentence one. Integrate 1 or 2 complete, unabridged quotations without quote-stacking, never quote broken fragments from chunk edges, and conclude with a finished synthesizing sentence:`;
 
-    // 3. Generate response with safety blocks lifted to avoid false-positive halts
+    // 3. Generate response with uncapped token ceiling and lifted safety blocks
     const generateRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -154,8 +154,7 @@ Compose an essayistic theological study (300 to 380 words) answering directly in
             { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
           ],
           generationConfig: {
-            temperature: 0.15,
-            maxOutputTokens: 2500,
+            temperature: 0.2,
           },
         }),
       }
@@ -166,8 +165,9 @@ Compose an essayistic theological study (300 to 380 words) answering directly in
       throw new Error(genData.error?.message || "Gemini text generation failed.");
     }
 
-    let answer = genData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    
+    const candidate = genData.candidates?.[0];
+    let answer = candidate?.content?.parts?.[0]?.text || "";
+
     // Replace em and en dashes
     answer = answer.replace(/\s*—\s*/g, ", ").replace(/\s*–\s*/g, ", ");
 
