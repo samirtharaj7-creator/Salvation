@@ -38,15 +38,22 @@ THEOLOGICAL ACCURACY:
 export async function POST(req: Request) {
   try {
     if (!GEMINI_API_KEY || !QDRANT_URL || !QDRANT_API_KEY) {
-      throw new Error("Missing required API keys or environment variables.");
+      return NextResponse.json(
+        { error: "Configuration error: GEMINI_API_KEY, QDRANT_URL, or QDRANT_API_KEY is missing." },
+        { status: 500 }
+      );
     }
 
     const { messages } = await req.json();
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
+    }
+
     const currentQuestion = messages[messages.length - 1].content;
 
     // 1. Generate query embedding
     const embedRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,12 +66,20 @@ export async function POST(req: Request) {
 
     const embedData = await embedRes.json();
     if (!embedRes.ok) {
-      throw new Error(embedData.error?.message || "Embedding request failed.");
+      const msg = embedData.error?.message || JSON.stringify(embedData);
+      console.error("Embedding API Error:", msg);
+      return NextResponse.json(
+        { error: `Embedding error (${embedRes.status}): ${msg}` },
+        { status: embedRes.status }
+      );
     }
 
     const queryVector = embedData.embedding?.values;
     if (!queryVector) {
-      throw new Error("Missing vector values from embedding response.");
+      return NextResponse.json(
+        { error: "Missing vector values from embedding model response." },
+        { status: 500 }
+      );
     }
 
     // 2. Query Qdrant
@@ -78,7 +93,7 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           vector: queryVector,
-          limit: 10,
+          limit: 8,
           with_payload: true,
         }),
       }
@@ -86,7 +101,12 @@ export async function POST(req: Request) {
 
     const qdrantData = await qdrantRes.json();
     if (!qdrantRes.ok) {
-      throw new Error("Qdrant vector search failed.");
+      const msg = qdrantData.status?.error || JSON.stringify(qdrantData);
+      console.error("Qdrant Search Error:", msg);
+      return NextResponse.json(
+        { error: `Vector search error (${qdrantRes.status}): ${msg}` },
+        { status: qdrantRes.status }
+      );
     }
 
     const points = qdrantData.result || [];
@@ -105,35 +125,45 @@ export async function POST(req: Request) {
       .map((m: any) => `${m.role === "user" ? "Inquirer" : "Theologian"}: ${m.content}`)
       .join("\n");
 
-    const prompt = `${SYSTEM_INSTRUCTION}
-
-${historyTranscript ? `Prior Conversation Discourse:\n${historyTranscript}\n` : ""}
-Retrieved Historical & Doctrinal Excerpts:
+    const userPrompt = `${historyTranscript ? `Prior Conversation Discourse:\n${historyTranscript}\n\n` : ""}Retrieved Historical & Doctrinal Excerpts:
 ${context}
 
 Inquiry: ${currentQuestion}
 
 Compose an essayistic theological study (300 to 450 words) answering directly in sentence one. Integrate 1 or 2 complete quotations without quote-stacking, never quote broken fragments from chunk edges, and conclude with a finished synthesizing sentence:`;
 
-    // 3. Generate response
+    // 3. Generate response via Gemini
     const generateRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          systemInstruction: {
+            parts: [{ text: SYSTEM_INSTRUCTION }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: userPrompt }],
+            },
+          ],
           generationConfig: {
             temperature: 0.15,
-            maxOutputTokens: 3500,
+            maxOutputTokens: 3000,
           },
         }),
       }
     );
 
     const genData = await generateRes.json();
-    if (!genData.ok) {
-      throw new Error(genData.error?.message || "Gemini text generation failed.");
+    if (!generateRes.ok) {
+      const msg = genData.error?.message || JSON.stringify(genData);
+      console.error("Gemini Generation Error:", msg);
+      return NextResponse.json(
+        { error: `Gemini API error (${generateRes.status}): ${msg}` },
+        { status: generateRes.status }
+      );
     }
 
     let answer = genData.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -141,9 +171,9 @@ Compose an essayistic theological study (300 to 450 words) answering directly in
 
     return NextResponse.json({ answer });
   } catch (error: any) {
-    console.error("Chat API error:", error);
+    console.error("Chat route catch-block error:", error);
     return NextResponse.json(
-      { error: error?.message || "Internal server error." },
+      { error: error?.message || "Internal server error occurred." },
       { status: 500 }
     );
   }
