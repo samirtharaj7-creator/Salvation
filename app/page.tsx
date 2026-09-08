@@ -8,6 +8,11 @@ interface Passage {
   excerpt: string;
 }
 
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 const SUGGESTIONS = [
   "If I'm saved by faith alone, why does obedience matter?",
   "What is the difference between justification and sanctification?",
@@ -52,12 +57,10 @@ function formatInlineText(text: string): React.ReactNode[] {
 
 export default function AskPage() {
   const [question, setQuestion] = useState("");
-  const [activeQuestion, setActiveQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [passages, setPassages] = useState<Passage[]>([]);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
-  const [hasAsked, setHasAsked] = useState(false);
   const [flashedSource, setFlashedSource] = useState<number | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -73,11 +76,10 @@ export default function AskPage() {
     const q = promptQuestion.trim();
     if (busy || !q) return;
 
+    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: q }];
     setBusy(true);
-    setHasAsked(true);
-    setActiveQuestion(q);
+    setMessages(nextMessages);
     setQuestion("");
-    setAnswer("");
     setPassages([]);
     setStatus("Searching the library");
 
@@ -90,19 +92,19 @@ export default function AskPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", content: q }],
+          messages: nextMessages.slice(-6),
         }),
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        setAnswer(errorData.error || "Something went wrong. Try again.");
+        setMessages([...nextMessages, { role: "assistant", content: errorData.error || "Something went wrong. Try again." }]);
       } else {
         const data = await res.json();
-        setAnswer(data.answer || "No response received.");
+        setMessages([...nextMessages, { role: "assistant", content: data.answer || "No response received." }]);
       }
     } catch (e) {
-      setAnswer("The companion could not be reached. Check your connection and try again.");
+      setMessages([...nextMessages, { role: "assistant", content: "The companion could not be reached. Check your connection and try again." }]);
     } finally {
       setBusy(false);
       setStatus("");
@@ -126,7 +128,7 @@ export default function AskPage() {
           font-family: var(--text); font-size: 18px; line-height: 1.65;
           -webkit-font-smoothing: antialiased;
         }
-        .page { max-width: 1000px; margin: 0 auto; padding: 56px 26px 70px; position: relative; }
+        .page { width: min(1440px, 100%); margin: 0 auto; padding: 56px 26px 70px; position: relative; }
         .page::before {
           content: ""; position: absolute; inset: 0 0 auto 0; height: 420px; pointer-events: none;
           background: radial-gradient(ellipse 44% 100% at 50% 6%, rgba(201,162,74,.13), transparent 70%);
@@ -181,6 +183,14 @@ export default function AskPage() {
         .ask-answer { margin-top: 26px; font-size: 18px; line-height: 1.75; color: var(--vellum-dim); max-width: none; width: 100%; overflow-wrap: break-word; }
         .ask-answer p { margin: 0; }
         .ask-answer p + p { margin-top: 15px; }
+        .ask-answer + .ask-turn { margin-top: 46px; padding-top: 38px; border-top: 1px solid var(--rule-soft); }
+        .ask-actions { display: flex; justify-content: flex-end; padding: 18px 22px 0; }
+        .ask-new {
+          color: var(--gold-lit); background: transparent; border: 1px solid var(--rule);
+          border-radius: 100px; padding: 8px 17px; font: 500 15px/1.2 var(--text);
+          cursor: pointer; transition: border-color .2s, background .2s;
+        }
+        .ask-new:hover { border-color: var(--gold); background: rgba(201,162,74,.07); }
 
         .ask-form {
           display: flex; align-items: flex-end; gap: 14px; margin: 0 22px;
@@ -227,7 +237,7 @@ export default function AskPage() {
 
         <div className="ask">
           <div className="ask-body">
-            {!hasAsked ? (
+            {messages.length === 0 ? (
               <div className="ask-intro">
                 <p className="ask-prompt">Where would you like to begin?</p>
                 <div className="ask-chips">
@@ -246,18 +256,39 @@ export default function AskPage() {
               </div>
             ) : (
               <div className="ask-thread">
-                <p className="ask-question">{activeQuestion}</p>
-                {status && <div className="ask-status">{status}</div>}
-                {answer && (
-                  <div className="ask-answer">
-                    {answer.split(/\n\n+/).map((para, i) => (
+                {messages.map((message, index) => message.role === "user" ? (
+                  <div className="ask-turn" key={index}>
+                    <p className="ask-question">{message.content}</p>
+                    {busy && index === messages.length - 1 && status && <div className="ask-status">{status}</div>}
+                  </div>
+                ) : (
+                  <div className="ask-answer" key={index}>
+                    {message.content.split(/\n\n+/).map((para, i) => (
                       <p key={i}>{formatInlineText(para)}</p>
                     ))}
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>
+
+          {messages.length > 0 && (
+            <div className="ask-actions">
+              <button
+                type="button"
+                className="ask-new"
+                disabled={busy}
+                onClick={() => {
+                  setMessages([]);
+                  setQuestion("");
+                  setStatus("");
+                  textareaRef.current?.focus();
+                }}
+              >
+                Start new conversation
+              </button>
+            </div>
+          )}
 
           <form
             className="ask-form"
