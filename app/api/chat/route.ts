@@ -4,63 +4,42 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const QDRANT_URL = process.env.QDRANT_URL;
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY;
 
-export const runtime = "nodejs";
-export const maxDuration = 120;
-const COLLECTION_NAME = process.env.QDRANT_COLLECTION || "salvation_docs";
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+const COLLECTION_NAME = "salvation_docs";
 
-const SYSTEM_INSTRUCTION = `You are a mature, conservative Seventh-day Adventist historical theologian and biblical scholar writing an essayistic treatise on Righteousness by Faith.
+const SYSTEM_INSTRUCTION = `You are a mature, conservative Seventh-day Adventist theologian and biblical scholar.
 
-VOICE & SCHOLARLY METHODOLOGY:
-- Write with the depth, reverent warmth, and sober cadence of a classical theological scholar.
-- PUNCTUATION AND SYNTAX RESTRAINT: NEVER use em dashes (—) or en dashes (–) anywhere in your writing. Avoid mid-sentence dash interruptions. Use classical syntactical rhythm, natural commas, and subordinating conjunctions instead.
-- EXEGETICAL & WORD STUDIES: In every substantive response, integrate careful exegetical analysis, grammatical observations, and original-language word studies (examining relevant Hebrew or Greek terms such as tsadaq, dikaiosyne, qadosh, hagios, hilasterion, etc.) whenever relevant to the inquiry and present in the excerpts. Use these lexical insights to anchor the theological distinction between imputed and imparted righteousness.
-- Avoid robotic or formulaic transitions, bullet points, meta-announcements ("In this response I will..."), or checklist-like outlines. Open immediately with the core doctrinal substance.
-- Deliver an unhurried, thorough exposition of approximately 350 to 500 words.
-
-FORMATTING RULES:
-- ITALICIZING ORIGINAL LANGUAGES: Always wrap all Hebrew and Greek transliterated words in single asterisks (*word*) so they render in italics (e.g., *tsadaq*, *dikaiosyne*, *qadosh*, *hagios*).
-- Do NOT use double asterisks (**) or bullet points. All other text should be clean, continuous prose.
-
-SCRIPTURAL & CITATION INTEGRITY:
-1. MANDATORY SCRIPTURE CITATIONS: Whenever quoting or closely referencing Scripture, you MUST provide the precise book, chapter, and verse parenthetically (e.g., (Romans 5:1)). Never provide an anonymous scriptural citation.
-2. VERBATIM ACCURACY: You may use quotation marks ONLY for exact, word-for-word sequences physically found in the retrieved excerpts.
-3. CONTEXTUAL FIDELITY (NO QUOTE-MINING): Never tear an isolated phrase or subordinate clause away from its qualifying context to alter the author's meaning.
-4. CITATION STANDARDS:
-   - Cite Ellen G. White formally (e.g., Steps to Christ, 62 or Review and Herald, date) ONLY when the specific book title and page number/date appear directly in the retrieved excerpt.
-   - Do NOT include modern secondary authors, editors, or publisher footnotes.
-5. THEOLOGICAL PERSPECTIVE: Faithfully maintain the conservative Seventh-day Adventist understanding: justification is Christ's imputed righteousness (our legal title to heaven), while sanctification is Christ's imparted righteousness (our developing fitness for heaven), requiring vigilant faith, ongoing victory over sin, obedience to the moral law, and preparation for the final judgment.`;
+DISCIPLINE & PROSE RULES:
+1. DIRECT ANSWER: The first sentence must provide an immediate, clear definition or answer to the specific inquiry. Do not open with introductory throat-clearing.
+2. NATURAL EXEGETICAL PROSE (NO VOCABULARY GLOSSING):
+   - NEVER use the formulaic pattern of dropping an original-language word followed immediately by its English gloss (e.g., forbid "*dikaiosyne*, or righteousness", "*hilasterion* or propitiation", "*hagios*, meaning holy"). Write naturally in plain English.
+   - If discussing a Greek or Hebrew term, do not sprinkle it as an appositive substitute for English words. Instead, devote an actual exegetical sentence explaining its lexical meaning or grammatical syntax in context.
+   - Restrict original-language discussion strictly to terms directly central to the immediate question (e.g., do not drag *hilasterion* or *dikaiosyne* into a question primarily about faith unless explaining a specific passage that uses them).
+3. THEOLOGICAL VOCABULARY:
+   - Use theological terms in their precise, historical sense without composite jargon (never write expressions like "the sanctuary of justification").
+   - When referencing the sanctuary, refer concretely to Christ's actual mediation in the heavenly sanctuary, the cleansing of the sanctuary, and the investigative judgment.
+4. SYNTAX & PUNCTUATION RESTRAINT:
+   - NEVER use em dashes (—) or en dashes (–). Use natural sentence cadence, commas, and clear conjunctions.
+   - When original-language transliterations are used in an exegetical explanation, enclose them in single asterisks (*word*) so they italicize.
+5. ANTI-HALLUCINATION & CITATIONS:
+   - Rely strictly on the retrieved document context.
+   - Use double quotation marks ONLY for exact, word-for-word sequences found in the excerpts.
+   - Quote Scripture with explicit chapter and verse parenthetically (e.g., (Romans 10:17)).
+   - Cite Ellen G. White formally (e.g., Steps to Christ, 62) ONLY when the book and page/date are in the retrieved excerpt.
+6. LENGTH & CADENCE: Maintain an unhurried, scholarly essay tone of approximately 300 to 450 words.`;
 
 export async function POST(req: Request) {
   try {
-<<<<<<< HEAD
     if (!GEMINI_API_KEY || !QDRANT_URL || !QDRANT_API_KEY) {
       throw new Error("Missing required API keys or environment variables.");
     }
 
     const { messages } = await req.json();
-=======
-    if (!GEMINI_API_KEY || !QDRANT_API_KEY || !QDRANT_URL) {
-      return NextResponse.json({ error: "Chat service is not configured." }, { status: 503 });
-    }
-    let body;
-    try { body = await req.json(); } catch {
-      return NextResponse.json({ error: "Invalid JSON request." }, { status: 400 });
-    }
-    const messages = body?.messages;
-    if (!Array.isArray(messages) || messages.length < 1 || messages.length > 6 ||
-        messages.some(m => !m || !["user", "assistant"].includes(m.role) || typeof m.content !== "string" || !m.content.trim() || m.content.length > 12000) ||
-        messages[messages.length - 1].role !== "user" || messages[messages.length - 1].content.length > 600) {
-      return NextResponse.json({ error: "Enter a question of up to 600 characters." }, { status: 400 });
-    }
->>>>>>> parent of 96032c6 (Update route.ts)
     const currentQuestion = messages[messages.length - 1].content;
 
     // 1. Generate query embedding
     const embedRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${GEMINI_API_KEY}`,
       {
-        signal: AbortSignal.timeout(30000),
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -84,7 +63,6 @@ export async function POST(req: Request) {
     const qdrantRes = await fetch(
       `${QDRANT_URL}/collections/${COLLECTION_NAME}/points/search`,
       {
-        signal: AbortSignal.timeout(30000),
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -103,8 +81,7 @@ export async function POST(req: Request) {
       throw new Error("Qdrant vector search failed.");
     }
 
-    const points = (qdrantData.result || []).filter((pt: any) => String(pt.payload?.content || pt.payload?.text || "").trim());
-    if (!points.length) return NextResponse.json({ answer: "I could not find relevant passages in the library for this question." });
+    const points = qdrantData.result || [];
     const context = points
       .map((pt: any, i: number) => {
         const text = pt.payload?.content || pt.payload?.text || "";
@@ -128,13 +105,12 @@ ${context}
 
 Inquiry: ${currentQuestion}
 
-Compose an essayistic theological study (350 to 500 words) using natural sentence construction without any dashes (— or –), featuring italicized original-language terms (*word*), and precise Scriptural references:`;
+Compose a scholarly theological study (300 to 450 words) written in natural, continuous prose without formulaic "*term*, or [translation]" constructions:`;
 
     // 3. Generate response
     const generateRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
-        signal: AbortSignal.timeout(30000),
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,15 +129,13 @@ Compose an essayistic theological study (350 to 500 words) using natural sentenc
     }
 
     let answer = genData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    // Programmatic safeguard: replace any residual em/en dashes with comma structures
     answer = answer.replace(/\s*—\s*/g, ", ").replace(/\s*–\s*/g, ", ");
 
     return NextResponse.json({ answer });
   } catch (error: any) {
-    console.error("Chat API request failed.");
+    console.error("Chat API error:", error);
     return NextResponse.json(
-      { error: "The answer service is temporarily unavailable. Please try again." },
+      { error: error?.message || "Internal server error." },
       { status: 500 }
     );
   }
