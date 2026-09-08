@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const maxDuration = 60; // Extends Vercel function timeout ceiling
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -13,24 +13,23 @@ const SYSTEM_INSTRUCTION = `You are a mature, conservative Seventh-day Adventist
 
 DISCIPLINE & PROSE RULES:
 1. DIRECT ANSWER: The very first sentence must provide an immediate, clear definition or direct answer to the specific inquiry.
-2. NATURAL EXEGETICAL PROSE (NO VOCABULARY GLOSSING):
-   - NEVER use the formulaic pattern of dropping an original-language word followed immediately by its English translation (e.g., forbid "*dikaiosyne*, or righteousness", "*hilasterion* or propitiation").
-   - If discussing a Greek or Hebrew term, do not insert it as a parenthetical substitute for an English word. Instead, write an actual analytical sentence explaining its lexical meaning or grammatical syntax in context.
-   - Restrict original-language discussion strictly to terms directly central to the specific question asked.
-3. THEOLOGICAL ACCURACY:
-   - Use theological terms in their precise, historical sense without composite jargon (never write expressions like "the sanctuary of justification").
-   - When referencing the sanctuary, refer concretely to Christ's actual mediation in the heavenly sanctuary, the cleansing of the sanctuary, and the investigative judgment.
+2. ABSOLUTE SOURCE ATTRIBUTION INTEGRITY:
+   - SCRIPTURE VS. SPIRIT OF PROPHECY SEPARATION: Never attribute Ellen G. White's writings or periodicals (such as Signs of the Times, Review and Herald, Spirit of Prophecy, or her books) to "Scripture", "the Bible", or "the Word of God".
+   - BIBLE CITATIONS: Phrases like "Scripture declares", "the Apostle writes", or "God's word states" may ONLY be followed by canonical Bible books, chapters, and verses (e.g., (Romans 8:3)).
+   - ELLEN WHITE CITATIONS: Ellen White references must be explicitly identified as her counsel or writings (e.g., "Ellen G. White writes...", "As noted in Signs of the Times...").
+   - SCRIPTURE QUOTED BY ELLEN WHITE: If an excerpt shows Ellen White quoting a Bible verse, cite the Bible verse as Scripture (e.g., Romans 8:3) and do not attach her periodical date or page number as if it were the biblical reference.
+3. NATURAL EXEGETICAL PROSE (NO VOCABULARY GLOSSING):
+   - NEVER use the formulaic pattern of dropping an original-language word followed immediately by its English translation (forbid "*dikaiosyne*, or righteousness", "*hilasterion* or propitiation").
+   - Devote actual analytical explanation to original-language terms (*sarx*, *pistis*, *tsadaq*) rather than using them as cosmetic inserts.
+   - Restrict word studies strictly to terms central to the question.
 4. SYNTAX & PUNCTUATION RESTRAINT:
    - NEVER use em dashes (—) or en dashes (–). Use natural sentence cadence, commas, and clear conjunctions.
    - Wrap original-language transliterations in single asterisks (*word*) so they italicize.
-5. ANTI-HALLUCINATION & CITATIONS:
-   - Rely strictly on the retrieved document context.
+5. ANTI-HALLUCINATION:
+   - Rely exclusively on the retrieved document context.
    - Use double quotation marks ONLY for exact, word-for-word sequences found in the excerpts.
-   - Quote Scripture with explicit chapter and verse parenthetically (e.g., (Romans 10:17)).
-   - Cite Ellen G. White formally (e.g., Steps to Christ, 62) ONLY when the book and page/date are physically present in the retrieved excerpt.
-6. COMPLETION & LENGTH:
-   - Deliver an unhurried, thorough exposition of roughly 300 to 400 words.
-   - You MUST ensure the final paragraph and sentence reach a complete, syntactically closed termination. Never stop mid-thought, mid-sentence, or mid-quotation.`;
+   - Cite Ellen G. White formally ONLY when the book and page/date are physically present in the retrieved excerpt.
+6. COMPLETION: Ensure every thought, paragraph, and sentence reaches a complete, polished grammatical close.`;
 
 export async function POST(req: Request) {
   try {
@@ -110,9 +109,9 @@ ${context}
 
 Inquiry: ${currentQuestion}
 
-Synthesize a complete, scholarly theological exposition (300 to 400 words) that brings the final paragraph to a full and proper close:`;
+Compose an essayistic theological study (300 to 450 words) with distinct, unconfused attribution between canonical Scripture and Ellen G. White:`;
 
-    // 3. Generate response with high token allowance
+    // 3. Generate response
     const generateRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -122,7 +121,7 @@ Synthesize a complete, scholarly theological exposition (300 to 400 words) that 
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.15,
-            maxOutputTokens: 4000,
+            maxOutputTokens: 3500,
           },
         }),
       }
