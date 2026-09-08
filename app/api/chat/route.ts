@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const maxDuration = 60; // Extends Vercel function timeout ceiling
+export const dynamic = "force-dynamic";
+
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const QDRANT_URL = process.env.QDRANT_URL;
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY;
@@ -9,23 +12,25 @@ const COLLECTION_NAME = "salvation_docs";
 const SYSTEM_INSTRUCTION = `You are a mature, conservative Seventh-day Adventist theologian and biblical scholar.
 
 DISCIPLINE & PROSE RULES:
-1. DIRECT ANSWER: The first sentence must provide an immediate, clear definition or answer to the specific inquiry. Do not open with introductory throat-clearing.
+1. DIRECT ANSWER: The very first sentence must provide an immediate, clear definition or direct answer to the specific inquiry.
 2. NATURAL EXEGETICAL PROSE (NO VOCABULARY GLOSSING):
-   - NEVER use the formulaic pattern of dropping an original-language word followed immediately by its English gloss (e.g., forbid "*dikaiosyne*, or righteousness", "*hilasterion* or propitiation", "*hagios*, meaning holy"). Write naturally in plain English.
-   - If discussing a Greek or Hebrew term, do not sprinkle it as an appositive substitute for English words. Instead, devote an actual exegetical sentence explaining its lexical meaning or grammatical syntax in context.
-   - Restrict original-language discussion strictly to terms directly central to the immediate question (e.g., do not drag *hilasterion* or *dikaiosyne* into a question primarily about faith unless explaining a specific passage that uses them).
-3. THEOLOGICAL VOCABULARY:
+   - NEVER use the formulaic pattern of dropping an original-language word followed immediately by its English translation (e.g., forbid "*dikaiosyne*, or righteousness", "*hilasterion* or propitiation").
+   - If discussing a Greek or Hebrew term, do not insert it as a parenthetical substitute for an English word. Instead, write an actual analytical sentence explaining its lexical meaning or grammatical syntax in context.
+   - Restrict original-language discussion strictly to terms directly central to the specific question asked.
+3. THEOLOGICAL ACCURACY:
    - Use theological terms in their precise, historical sense without composite jargon (never write expressions like "the sanctuary of justification").
    - When referencing the sanctuary, refer concretely to Christ's actual mediation in the heavenly sanctuary, the cleansing of the sanctuary, and the investigative judgment.
 4. SYNTAX & PUNCTUATION RESTRAINT:
    - NEVER use em dashes (—) or en dashes (–). Use natural sentence cadence, commas, and clear conjunctions.
-   - When original-language transliterations are used in an exegetical explanation, enclose them in single asterisks (*word*) so they italicize.
+   - Wrap original-language transliterations in single asterisks (*word*) so they italicize.
 5. ANTI-HALLUCINATION & CITATIONS:
    - Rely strictly on the retrieved document context.
    - Use double quotation marks ONLY for exact, word-for-word sequences found in the excerpts.
    - Quote Scripture with explicit chapter and verse parenthetically (e.g., (Romans 10:17)).
-   - Cite Ellen G. White formally (e.g., Steps to Christ, 62) ONLY when the book and page/date are in the retrieved excerpt.
-6. LENGTH & CADENCE: Maintain an unhurried, scholarly essay tone of approximately 300 to 450 words.`;
+   - Cite Ellen G. White formally (e.g., Steps to Christ, 62) ONLY when the book and page/date are physically present in the retrieved excerpt.
+6. COMPLETION & LENGTH:
+   - Deliver an unhurried, thorough exposition of roughly 300 to 400 words.
+   - You MUST ensure the final paragraph and sentence reach a complete, syntactically closed termination. Never stop mid-thought, mid-sentence, or mid-quotation.`;
 
 export async function POST(req: Request) {
   try {
@@ -105,9 +110,9 @@ ${context}
 
 Inquiry: ${currentQuestion}
 
-Compose a scholarly theological study (300 to 450 words) written in natural, continuous prose without formulaic "*term*, or [translation]" constructions:`;
+Synthesize a complete, scholarly theological exposition (300 to 400 words) that brings the final paragraph to a full and proper close:`;
 
-    // 3. Generate response
+    // 3. Generate response with high token allowance
     const generateRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -117,7 +122,7 @@ Compose a scholarly theological study (300 to 450 words) written in natural, con
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.15,
-            maxOutputTokens: 3500,
+            maxOutputTokens: 4000,
           },
         }),
       }
