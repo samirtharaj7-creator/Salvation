@@ -184,14 +184,6 @@ export default function AskPage() {
         .ask-answer p { margin: 0; }
         .ask-answer p + p { margin-top: 15px; }
         .ask-answer + .ask-turn { margin-top: 46px; padding-top: 38px; border-top: 1px solid var(--rule-soft); }
-        .ask-actions { display: flex; justify-content: flex-end; padding: 18px 22px 0; }
-        .ask-new {
-          color: var(--gold-lit); background: transparent; border: 1px solid var(--rule);
-          border-radius: 100px; padding: 8px 17px; font: 500 15px/1.2 var(--text);
-          cursor: pointer; transition: border-color .2s, background .2s;
-        }
-        .ask-new:hover { border-color: var(--gold); background: rgba(201,162,74,.07); }
-
         .ask-form {
           display: flex; align-items: flex-end; gap: 14px; margin: 0 22px;
           padding: 12px 12px 12px 20px; border: 1px solid var(--rule);
@@ -206,6 +198,14 @@ export default function AskPage() {
         .ask-input::placeholder { color: var(--slate-dim); font-style: italic; }
         .ask-input:focus { outline: none; }
         .ask-input:disabled { opacity: .5; }
+        .ask-reset {
+          flex: none; width: 42px; height: 42px; border-radius: 50%;
+          border: 1px solid rgba(201,162,74,.38); background: transparent; color: var(--gold);
+          display: flex; align-items: center; justify-content: center; cursor: pointer;
+          transition: color .2s, border-color .2s, background .2s;
+        }
+        .ask-reset:hover:not(:disabled) { color: var(--gold-lit); border-color: var(--gold); background: rgba(201,162,74,.08); }
+        .ask-reset:disabled { opacity: .4; cursor: default; }
         .ask-send {
           flex: none; width: 42px; height: 42px; border-radius: 50%; border: none;
           background: var(--gold); color: var(--night-deep);
@@ -214,11 +214,6 @@ export default function AskPage() {
         }
         .ask-send:hover:not(:disabled) { background: var(--gold-lit); }
         .ask-send:disabled { opacity: .4; cursor: default; }
-
-        .ask-disclaimer {
-          margin: 0; padding: 16px 44px 22px; text-align: center;
-          font-size: 15px; font-style: italic; color: var(--slate-dim);
-        }
 
         @media (max-width: 760px) {
           .page { padding: 36px 16px 44px; }
@@ -232,7 +227,7 @@ export default function AskPage() {
       <main className="page">
         <header className="page-head">
           <h1>Ask a Question</h1>
-          <p>Ask about righteousness by faith, justification, and assurance.</p>
+          <p>Ask any question about salvation, grace, faith, and assurance in Christ.</p>
         </header>
 
         <div className="ask">
@@ -272,24 +267,6 @@ export default function AskPage() {
             )}
           </div>
 
-          {messages.length > 0 && (
-            <div className="ask-actions">
-              <button
-                type="button"
-                className="ask-new"
-                disabled={busy}
-                onClick={() => {
-                  setMessages([]);
-                  setQuestion("");
-                  setStatus("");
-                  textareaRef.current?.focus();
-                }}
-              >
-                Start new conversation
-              </button>
-            </div>
-          )}
-
           <form
             className="ask-form"
             onSubmit={(e) => {
@@ -317,6 +294,26 @@ export default function AskPage() {
                 }
               }}
             />
+            {messages.length > 0 && (
+              <button
+                type="button"
+                className="ask-reset"
+                disabled={busy}
+                aria-label="Start new conversation"
+                title="Start new conversation"
+                onClick={() => {
+                  setMessages([]);
+                  setQuestion("");
+                  setStatus("");
+                  textareaRef.current?.focus();
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                  <path d="M19 8a8 8 0 1 0 1 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M19 3v5h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
             <button
               type="submit"
               disabled={busy || !question.trim()}
@@ -335,10 +332,6 @@ export default function AskPage() {
               </svg>
             </button>
           </form>
-
-          <p className="ask-disclaimer">
-            Answers come from the indexed texts only. Verify important claims against Scripture and the cited sources.
-          </p>
         </div>
       </main>
     </>
