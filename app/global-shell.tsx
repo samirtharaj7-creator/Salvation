@@ -11,6 +11,7 @@ const libraryItems = [
   { name: "Psalms", description: "Worship, lament, praise, and prayer", href: "https://psalms.mybibleexplorer.com", category: "book" },
   { name: "Revelation", description: "Symbols, judgment, and final hope", href: "https://revelation.mybibleexplorer.com/", category: "book" },
   { name: "Romans", description: "Righteousness by faith and life in the Spirit", href: "https://romans.mybibleexplorer.com", category: "book" },
+  { name: "Find Your Way Home", description: "A thirteen-step journey through Steps to Christ", href: "https://stc.mybibleexplorer.com/", category: "topic" },
   { name: "Hermeneutics", description: "Learn to read Scripture faithfully", href: "https://hermeneutics.mybibleexplorer.com", category: "topic" },
   { name: "Last Day Events", description: "Earth's final chapter", href: "https://lastdayevents.mybibleexplorer.com/index.html", category: "topic" },
   { name: "Life of Christ", description: "The life and ministry of Jesus", href: "https://christ.mybibleexplorer.com/", category: "topic" },
